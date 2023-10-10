@@ -1,10 +1,13 @@
 .data
     .align 4
     endline:    .string "\n"
+    test_data:    .string "Test data "
     IN_N:     .word    0x00000002
     OUT_N:    .word    0x00000005
     interpolation:    .word    0x3E800000 , 0x3F000000 , 0x3F400000
-    im_2:     .word    0x3F746C76 , 0x3F25AF8E , 0x3F52C0F9 , 0x3E63C9EF
+    im_2_1:     .word    0x3F746C76 , 0x3F25AF8E , 0x3F52C0F9 , 0x3E63C9EF
+    im_2_2:     .word    0x3F666666 , 0x3F19999A , 0x3E4CCCCD , 0x3ECCCCCD
+    im_2_3:     .word    0x3F0DFF82 , 0x3F25B61C , 0x3EC8FEEF , 0x3EE288CE
     im_5:    .word    0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0
 .text
     
@@ -160,11 +163,7 @@ fmul32:
     add    t0 , s6 , s7
     li    t1 , 127
     sub    s8 , t0 , t1
-    beq    x0 , s9 , no_inc_ertmp
-    addi    s11 , s8 , 1
-    j fmul32_exitifelse
-    no_inc_ertmp:
-    mv    s11 , s8
+    add    s11 , s8 , s9
     
     
     fmul32_exitifelse:
@@ -341,11 +340,14 @@ main:
     la    a0 , IN_N
     lw    s4 , 0(a0)
     lw    s5 , 4(a0)
-    la    a0 , im_2
-    lw    t0 , 0(a0)
-    lw    t1 , 4(a0)
-    lw    t2 , 8(a0)
-    lw    t3 , 12(a0)
+    li    s8 , 0
+    li    s9 , 3
+    la    s7 , im_2_1
+    for_testdata:
+    lw    t0 , 0(s7)
+    lw    t1 , 4(s7)
+    lw    t2 , 8(s7)
+    lw    t3 , 12(s7)
     
     la    s6 , im_5 # t4 = address of im_5[0,0]
     sw    t0 , 0(s6)
@@ -443,8 +445,24 @@ main:
     addi    s0 , s0 , 1
     blt    s0 , s2 , second_outloop
     
+    la      a0, test_data
+    li      a7, 4
+    ecall
+    addi      a0, s8 , 1
+    li      a7, 1
+    ecall
+    la      a0, endline    #printf("\n")
+    li      a7, 4
+    ecall
     la    a1 , im_5
     call    print_image
+    la      a0, endline    #printf("\n")
+    li      a7, 4
+    ecall
+    
+    addi    s8 , s8 , 1
+    addi    s7 , s7 , 16
+    blt    s8 , s9 , for_testdata
     
     li       a7,  10           # return 0
     ecall
