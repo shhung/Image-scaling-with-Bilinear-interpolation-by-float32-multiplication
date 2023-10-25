@@ -1,10 +1,8 @@
-
 .global _start
+    .equ EXIT, 93
 
 .data
     .align 4
-    endline:    .string "\n"
-    test_data:    .string "Test data "
     IN_N:     .word    0x00000002
     OUT_N:    .word    0x00000005
     interpolation:    .word    0x3E800000 , 0x3F000000 , 0x3F400000
@@ -301,43 +299,6 @@ fadd32:
     lw    ra , 48(sp)
     addi    sp , sp , 52
     ret
-    
-print_image:
-    addi    sp , sp , -12
-    sw    s0 , 0(sp)
-    sw    s1 , 4(sp)
-    sw    s2 , 8(sp)
-    li    s0 , 0
-    li    s1 , 0
-    li    s2 , 5
-    p_outer_loop:
-    bge    s0, s2, p_done  # 
-    li    s1, 0      # j = 0
-    p_inner_loop:
-    bge    s1, s2, p_inner_done
-    
-    lw    a0, 0(a1)
-    li    a7,  2
-    ecall    #print number
-    li    a0,  32
-    li    a7,  11
-    ecall    #print space
-    
-    addi    a1, a1, 4
-    addi    s1, s1, 1 # j = j + 1
-    j    p_inner_loop
-    p_inner_done:
-    la      a0, endline    #printf("\n")
-    li      a7, 4
-    ecall
-    addi s0, s0, 1  # i = i + 1
-    j   p_outer_loop  
-    p_done:
-    lw    s0 , 0(sp)
-    lw    s1 , 4(sp)
-    lw    s2 , 8(sp)
-    addi    sp , sp ,12
-    ret
 
 main:
     la    a0 , IN_N
@@ -447,26 +408,12 @@ main:
     blt    s1 , s3 , second_inloop
     addi    s0 , s0 , 1
     blt    s0 , s2 , second_outloop
-    
-    la      a0, test_data
-    li      a7, 4
-    ecall
-    addi      a0, s8 , 1
-    li      a7, 1
-    ecall
-    la      a0, endline    #printf("\n")
-    li      a7, 4
-    ecall
-    la    a1 , im_5
-    call    print_image
-    la      a0, endline    #printf("\n")
-    li      a7, 4
-    ecall
-    
+
     addi    s8 , s8 , 1
     addi    s7 , s7 , 16
     blt    s8 , s9 , for_testdata
     
-    li       a7,  10           # return 0
+    li      a0, 0
+    li      a7,  EXIT           # return 0
     ecall
     
