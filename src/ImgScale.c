@@ -43,7 +43,7 @@ int32_t imul32(int32_t a, int32_t b)
         }
         b = b >> 1;
         if(b == 0x0) break;
-        r = r >> 1;
+        a = a << 1;
     }
     return r;
 }
