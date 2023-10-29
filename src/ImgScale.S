@@ -1,5 +1,4 @@
-.global _start
-    .equ EXIT, 93
+.global ImgScale
 
 .data
     .align 4
@@ -12,8 +11,153 @@
     im_5:    .word    0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0 , 0x0
 .text
     
-_start:
-    j    main
+# a0 = data to be scaled
+# a1 = pointer to storing scaled image
+ImgScale:
+    addi    sp, sp, -56
+    sw    a1, 0(sp)
+    sw    s0, 4(sp)
+    sw    s1, 8(sp)
+    sw    s2, 12(sp)
+    sw    s3, 16(sp)
+    sw    s4, 20(sp)
+    sw    s5, 24(sp)
+    sw    s6, 28(sp)
+    sw    s7, 32(sp)
+    sw    s8, 36(sp)
+    sw    s9, 40(sp)
+    sw    s10, 44(sp)
+    sw    s11, 48(sp)
+    sw    ra, 52(sp)
+    
+
+    li    s4 , 2
+    li    s5 , 0
+    li    s8 , 0
+    li    s9 , 3
+    mv    s7 , a0
+    for_testdata:
+    lw    t0 , 0(s7)
+    lw    t1 , 4(s7)
+    lw    t2 , 8(s7)
+    lw    t3 , 12(s7)
+    
+    mv    s6 , a1 # t4 = address of im_5[0,0]
+    sw    t0 , 0(s6)
+    sw    t1 , 16(s6)
+    sw    t2 , 80(s6)
+    sw    t3 , 96(s6)
+    
+    li    s0 , 1 # i = 1
+    li    s1 , 4 # i < 4
+    first_loop:
+    lw    a0 , 0(s6)
+    la    t5 , interpolation
+    li    t1 , 3
+    sub    t1 , t1 , s0
+    slli    t1 , t1 , 2
+    add    t1 , t5 , t1
+    lw    a1 , 0(t1)
+    call    fmul32
+    mv    s11 , a0 # t2 = fmul(1)
+    lw    a0 , 16(s6)
+    la    t5 , interpolation
+    addi    t1 , s0 , -1
+    slli    t1 , t1 , 2
+    add    t1 , t5 , t1
+    lw    a1 , 0(t1)
+    call    fmul32
+    mv    a1 , s11 # a1 = fmul(1)
+    call    fadd32
+    slli    t1 , s0 , 2 # i*4
+    add    t1 , t1 , s6 # im_5 + i*4
+    sw    a0 , 0(t1)   
+    
+    #second stage
+    lw    a0 , 80(s6)
+    la    t5 , interpolation
+    li    t1 , 3
+    sub    t1 , t1 , s0
+    slli    t1 , t1 , 2
+    add    t1 , t5 , t1
+    lw    a1 , 0(t1)
+    call    fmul32
+    mv    s11 , a0 # t2 = fmul(3)
+    lw    a0 , 96(s6)
+    la    t5 , interpolation
+    addi    t1 , s0 , -1
+    slli    t1 , t1 , 2
+    add    t1 , t5 , t1
+    lw    a1 , 0(t1)
+    call    fmul32
+    mv    a1 , s11 # t6 = fmul(4)
+    call    fadd32
+    slli    t1 , s0 , 2 # i*4
+    add    t1 , t1 , s6 # im_5 + i*4
+    sw    a0 , 80(t1)
+    addi    s0 , s0 , 1
+    blt    s0 , s1 , first_loop
+    
+    li    s0 , 1
+    li    s2 , 4
+    li    s3 , 5
+    second_outloop:
+    li    s1 , 0
+    second_inloop:
+    slli    t0 , s1 , 2
+    add    t0 , t0 , s6
+    lw    a0 , 0(t0) #load im_5[0][j]
+    la    t5 , interpolation
+    li    t1 , 3
+    sub    t1 , t1 , s0
+    slli    t1 , t1 , 2
+    add    t1 , t5 , t1
+    lw    a1 , 0(t1)
+    call    fmul32
+    mv    s11 , a0 # t2 = fmul(1)
+    slli    t0 , s1 , 2
+    add    t0 , t0 , s6
+    lw    a0 , 80(t0) #load im_5[0][j]
+    la    t5 , interpolation
+    addi    t1 , s0 , -1
+    slli    t1 , t1 , 2
+    add    t1 , t5 , t1
+    lw    a1 , 0(t1)
+    call    fmul32
+    mv    a1 , s11
+     # a1 = fmul(1)
+    call    fadd32
+    slli    t1 , s0 , 2
+    add    t1 , t1 , s0
+    add    t1 , t1 , s1
+    slli    t1 , t1 , 2
+    add    t1 , t1 , s6
+    sw    a0 , 0(t1)
+    addi    s1 , s1 , 1
+    blt    s1 , s3 , second_inloop
+    addi    s0 , s0 , 1
+    blt    s0 , s2 , second_outloop
+
+    addi    s8 , s8 , 1
+    addi    s7 , s7 , 16
+    blt    s8 , s9 , for_testdata
+    
+    lw    a0, 0(sp)
+    lw    s0, 4(sp)
+    lw    s1, 8(sp)
+    lw    s2, 12(sp)
+    lw    s3, 16(sp)
+    lw    s4, 20(sp)
+    lw    s5, 24(sp)
+    lw    s6, 28(sp)
+    lw    s7, 32(sp)
+    lw    s8, 36(sp)
+    lw    s9, 40(sp)
+    lw    s10, 44(sp)
+    lw    s11, 48(sp)
+    lw    ra, 52(sp)
+    addi    sp, sp, 56
+    ret
     
 count_leading_zeros:    
     #li    a0 , 1
@@ -299,121 +443,3 @@ fadd32:
     lw    ra , 48(sp)
     addi    sp , sp , 52
     ret
-
-main:
-    la    a0 , IN_N
-    lw    s4 , 0(a0)
-    lw    s5 , 4(a0)
-    li    s8 , 0
-    li    s9 , 3
-    la    s7 , im_2_1
-    for_testdata:
-    lw    t0 , 0(s7)
-    lw    t1 , 4(s7)
-    lw    t2 , 8(s7)
-    lw    t3 , 12(s7)
-    
-    la    s6 , im_5 # t4 = address of im_5[0,0]
-    sw    t0 , 0(s6)
-    sw    t1 , 16(s6)
-    sw    t2 , 80(s6)
-    sw    t3 , 96(s6)
-    
-    li    s0 , 1 # i = 1
-    li    s1 , 4 # i < 4
-    first_loop:
-    lw    a0 , 0(s6)
-    la    t5 , interpolation
-    li    t1 , 3
-    sub    t1 , t1 , s0
-    slli    t1 , t1 , 2
-    add    t1 , t5 , t1
-    lw    a1 , 0(t1)
-    call    fmul32
-    mv    s11 , a0 # t2 = fmul(1)
-    lw    a0 , 16(s6)
-    la    t5 , interpolation
-    addi    t1 , s0 , -1
-    slli    t1 , t1 , 2
-    add    t1 , t5 , t1
-    lw    a1 , 0(t1)
-    call    fmul32
-    mv    a1 , s11 # a1 = fmul(1)
-    call    fadd32
-    slli    t1 , s0 , 2 # i*4
-    add    t1 , t1 , s6 # im_5 + i*4
-    sw    a0 , 0(t1)   
-    
-    #second stage
-    lw    a0 , 80(s6)
-    la    t5 , interpolation
-    li    t1 , 3
-    sub    t1 , t1 , s0
-    slli    t1 , t1 , 2
-    add    t1 , t5 , t1
-    lw    a1 , 0(t1)
-    call    fmul32
-    mv    s11 , a0 # t2 = fmul(3)
-    lw    a0 , 96(s6)
-    la    t5 , interpolation
-    addi    t1 , s0 , -1
-    slli    t1 , t1 , 2
-    add    t1 , t5 , t1
-    lw    a1 , 0(t1)
-    call    fmul32
-    mv    a1 , s11 # t6 = fmul(4)
-    call    fadd32
-    slli    t1 , s0 , 2 # i*4
-    add    t1 , t1 , s6 # im_5 + i*4
-    sw    a0 , 80(t1)
-    addi    s0 , s0 , 1
-    blt    s0 , s1 , first_loop
-    
-    li    s0 , 1
-    li    s2 , 4
-    li    s3 , 5
-    second_outloop:
-    li    s1 , 0
-    second_inloop:
-    slli    t0 , s1 , 2
-    add    t0 , t0 , s6
-    lw    a0 , 0(t0) #load im_5[0][j]
-    la    t5 , interpolation
-    li    t1 , 3
-    sub    t1 , t1 , s0
-    slli    t1 , t1 , 2
-    add    t1 , t5 , t1
-    lw    a1 , 0(t1)
-    call    fmul32
-    mv    s11 , a0 # t2 = fmul(1)
-    slli    t0 , s1 , 2
-    add    t0 , t0 , s6
-    lw    a0 , 80(t0) #load im_5[0][j]
-    la    t5 , interpolation
-    addi    t1 , s0 , -1
-    slli    t1 , t1 , 2
-    add    t1 , t5 , t1
-    lw    a1 , 0(t1)
-    call    fmul32
-    mv    a1 , s11
-     # a1 = fmul(1)
-    call    fadd32
-    slli    t1 , s0 , 2
-    add    t1 , t1 , s0
-    add    t1 , t1 , s1
-    slli    t1 , t1 , 2
-    add    t1 , t1 , s6
-    sw    a0 , 0(t1)
-    addi    s1 , s1 , 1
-    blt    s1 , s3 , second_inloop
-    addi    s0 , s0 , 1
-    blt    s0 , s2 , second_outloop
-
-    addi    s8 , s8 , 1
-    addi    s7 , s7 , 16
-    blt    s8 , s9 , for_testdata
-    
-    li      a0, 0
-    li      a7,  EXIT           # return 0
-    ecall
-    

@@ -24,39 +24,44 @@ fmul32:
     li    t0 , 0x7fffff
     and    t0 , s0 , t0
     li    t1 , 0x800000
-    or    s4 , t0 , t1
+    or    s4 , t0 , t1      
+        # s4 = ma
     li    t0 , 0x7fffff
     and    t0 , s1 , t0
     li    t1 , 0x800000
-    or    s5 , t0 , t1
+    or    s5 , t0 , t1      
+        # s5 = mb
     li    t0 , 23
     srl    t0 , s0 ,t0
     li    t1 , 0xff
     and    s6 , t0 , t1
+        # s6 = ea
     li    t0 , 23
     srl    t0 , s1 ,t0
     li    t1 , 0xff
-    and    s7 , t0 , t1
-    
+    and    s7 , t0 , t1 
+        # s7 = eb
     mv    a0 , s4
     mv    a1 , s5
     call    imul32
-    mv    s8 , a0
-    #call    getbit
+    mv    s8 , a0       
+        # s8 = ma * mb
     li    t0 , 24
     sra    t0 , s8 , t0
-    andi    s9 , t0 , 1
-    
+    andi    s9 , t0 , 1 
+        # s9 = mshift
     
     srl    s10 , s8 , s9
-    add    t0 , s6 , s7
+        # s10 = mr
+    add    t0 , s6 , s7     
     li    t1 , 127
     sub    s8 , t0 , t1
     add    s11 , s8 , s9
     
     
     fmul32_exitifelse:
-    xor    s9 , s2 , s3
+    xor    s9 , s2 , s3 
+        # s9 = sign
     li    t0 , 31
     sll    t0 , s9 , t0
     li    t1 , 0xff

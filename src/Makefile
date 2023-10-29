@@ -1,18 +1,21 @@
 TOOL = riscv-none-elf-
 ASFLAGS = -march=rv32i -mabi=ilp32
 LDFLAGS = --oformat=elf32-littleriscv
-OPTIMIZE = -O3
+OPTIMIZE = -Ofast
+
+all: main.elf ImgScaleFromC.elf
 
 %.o: %.S
-	$(TOOL)as -R $(ASFLAGS) -o $@ $<
+	$(TOOL)as $(ASFLAGS) -o $@ $<
 
-all: ImgScale.elf ImgScaleFromC.elf
+main.o: main.c
+	$(TOOL)gcc $(OPTIMIZE) -c $(ASFLAGS) -o $@ $<
 
-ImgScale.elf: ImgScale.o
-	$(TOOL)ld -o $@ -T ImgScale.ld $(LDFLAGS) $<
+main.elf: ImgScale.o main.o
+	$(TOOL)gcc -o $@ *.o
 
 ImgScaleFromC.elf: ImgScale.c
-	$(TOOL)gcc -o $@ $(ASFLAGS) $<
+	$(TOOL)gcc $(OPTIMIZE) -o $@ $(ASFLAGS) $<
 
 clean:
-	$(RM) ImgScale.elf ImgScaleFromC.elf ImgScale.o
+	$(RM) main.elf ImgScaleFromC.elf *.o

@@ -5,12 +5,30 @@
 Write your code in this editor and press "Run" button to compile and execute it.
 
 *******************************************************************************/
-
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdint.h>
 
 #define IN_N 2
 #define OUT_N 5
+
+typedef uint64_t ticks;
+static inline ticks getticks(void)
+{
+    uint64_t result;
+    uint32_t l, h, h2;
+    asm volatile(
+        "rdcycleh %0\n"
+        "rdcycle %1\n"
+        "rdcycleh %2\n"
+        "sub %0, %0, %2\n"
+        "seqz %0, %0\n"
+        "sub %0, zero, %0\n"
+        "and %1, %1, %0\n"
+        : "=r"(h), "=r"(l), "=r"(h2));
+    result = (((uint64_t) h) << 32) | ((uint64_t) l);
+    return result;
+}
 
 uint32_t count_leading_zeros(uint32_t x) {
     x |= (x >> 1);
@@ -43,7 +61,7 @@ int32_t imul32(int32_t a, int32_t b)
         }
         b = b >> 1;
         if(b == 0x0) break;
-        a = a << 1;
+        r = r >> 1;
     }
     return r;
 }
@@ -152,29 +170,13 @@ int main()
         {0,0,0,0,0}
     };
     
-    //printf("%x , %x\n",fmul32(0x3f746c76 , 0x3f400000) , fmul32(0x3f25af8e , 0x3e800000));
-    //float r = fadd32(a_2 , b_2);
-    //printf("%x\n",*(int32_t *) &r);
-    
-    
+    // begin of computation
+    ticks t0 = getticks();
+
     im_5[0][0] = im_2[0][0];
     im_5[0][OUT_N-1] = im_2[0][IN_N-1];
     im_5[OUT_N-1][0] = im_2[IN_N-1][0];
     im_5[OUT_N-1][OUT_N-1] = im_2[IN_N-1][IN_N-1];
-    
-    /*float a = fmul32(im_5[0][0] , 0.75);
-    float b = fmul32(im_5[0][4] , 0.25);
-    printf("a = %f , ",a);
-    printf("b = %f \n",b);
-    printf("int32_t : a = %x , ",*(int32_t *)&a);
-    printf("b = %x\n",*(int32_t *)&b);
-    
-    float r = fadd32(a,b);
-    printf("%x\n",*(int32_t *)&r);
-    int32_t c = 0x3f375158 , d = 0x3e25af8e;
-    a = *(float *) &c;
-    b = *(float *) &d;
-    */
     
     for(int i=1;i<4;i++){
         im_5[0][i] = fadd32 (fmul32(im_5[0][0] , (float)(OUT_N - 1 - i) / (float)(OUT_N - 1)) , fmul32(im_5[0][OUT_N-1] , (float)(i) / (float)(OUT_N-1)));
@@ -187,6 +189,8 @@ int main()
         }
     }
     
+    // end of computation
+    ticks t1 = getticks();
     
     for(int i=0;i<OUT_N;i++){
         for(int j=0;j<OUT_N;j++){
@@ -195,11 +199,7 @@ int main()
         printf("\n");
     }
 
+    printf("elapsed cycle: %" PRIu64 "\n", t1 - t0);
+
     return 0;
 }
-
-/*answer = 0.954780 0.877887 0.800995 0.724102 0.647210 
-           0.921899 0.826679 0.731460 0.636240 0.541020 
-           0.889019 0.775471 0.661924 0.548377 0.434830 
-           0.856138 0.724263 0.592389 0.460514 0.328640 
-           0.823257 0.673055 0.522853 0.372652 0.222450 */
