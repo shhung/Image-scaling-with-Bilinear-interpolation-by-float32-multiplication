@@ -12,24 +12,6 @@ Write your code in this editor and press "Run" button to compile and execute it.
 #define IN_N 2
 #define OUT_N 5
 
-typedef uint64_t ticks;
-static inline ticks getticks(void)
-{
-    uint64_t result;
-    uint32_t l, h, h2;
-    asm volatile(
-        "rdcycleh %0\n"
-        "rdcycle %1\n"
-        "rdcycleh %2\n"
-        "sub %0, %0, %2\n"
-        "seqz %0, %0\n"
-        "sub %0, zero, %0\n"
-        "and %1, %1, %0\n"
-        : "=r"(h), "=r"(l), "=r"(h2));
-    result = (((uint64_t) h) << 32) | ((uint64_t) l);
-    return result;
-}
-
 uint32_t count_leading_zeros(uint32_t x) {
     x |= (x >> 1);
     x |= (x >> 2);
@@ -171,8 +153,6 @@ int main()
     };
     
     // begin of computation
-    ticks t0 = getticks();
-
     im_5[0][0] = im_2[0][0];
     im_5[0][OUT_N-1] = im_2[0][IN_N-1];
     im_5[OUT_N-1][0] = im_2[IN_N-1][0];
@@ -187,11 +167,9 @@ int main()
         for(int j=0;j<OUT_N;j++){
             im_5[i][j] = fadd32 (fmul32(im_5[0][j] , (float)(OUT_N - 1 - i) / (float)(OUT_N - 1)) , fmul32(im_5[OUT_N-1][j] , (float)(i) / (float)(OUT_N - 1)));
         }
-    }
-    
+    } 
     // end of computation
-    ticks t1 = getticks();
-    
+
     for(int i=0;i<OUT_N;i++){
         for(int j=0;j<OUT_N;j++){
             printf("%f ",im_5[i][j]);
@@ -199,7 +177,13 @@ int main()
         printf("\n");
     }
 
-    printf("elapsed cycle: %" PRIu64 "\n", t1 - t0);
-
+    for(int i=0;i<OUT_N;i++){
+        for(int j=0;j<OUT_N;j++){
+            unsigned int *ptr = (unsigned int *)&im_5[i][j];
+            printf("%d ", *ptr);
+        }
+        printf("\n");
+    }
+    
     return 0;
 }
